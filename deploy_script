@@ -1,0 +1,33 @@
+#!/bin/bash
+
+# Get start time
+STARTTIME=$(date +%s)
+KEY="<insert_key_filename_here>"
+HOST="<insert_host_here>"
+
+# Push to git
+if [ -z "$2" ] ; then
+	echo -e "\nError: commit message empty. Please pass a message as an arg.\n"
+	exit
+else
+	git add -A
+	git commit -m "$2"
+	git push origin master
+fi
+
+# SSH into server and update
+cd ../..
+ssh -tt -i "${KEY}" $HOST /bin/bash << EOF
+  git pull origin master
+	npm install
+	npm run build
+	pm2 restart server
+  exit
+EOF
+
+# Get end time and difference
+ENDTIME=$(date +%s)
+DIFFERENCE=$(($ENDTIME-$STARTTIME))
+
+# Echo finished with time
+echo -e "\n  Done in $DIFFERENCE seconds!\n"
