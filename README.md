@@ -2,7 +2,7 @@
 
 ### Using Node + Restify + LevelDB 
 
-### I find myself re-using this code for multiple projects, so I'm placing it here for others to use as well.
+I find myself re-using this code for multiple projects, so I'm placing it here for others to use as well.
 
 Clone, then run:  <code>npm install</code>
 
