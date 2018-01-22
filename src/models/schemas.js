@@ -11,6 +11,14 @@ module.exports = {
     activated: null,
     activatedAt: null
   },
+  // accountActivation: {
+  //   accountActivation: null,
+  //   userId: null
+  // },
+  // passwordReset: {
+  //   passwordReset: null,
+  //   userId: null
+  // },
   session: {
     token: null,
   }

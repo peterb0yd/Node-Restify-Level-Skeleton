@@ -1,24 +1,24 @@
-var cryptojs = require('crypto-js');
-var db = require('../models');
+const cryptojs = require('crypto-js');
+const User = require('../models/user.js');
+const Session = require('../models/session');
 
 module.exports = {
-  requireAuthentication(req, res, next) {
+  async requireAuth(req, res, next) {
     try {
-      let authToken = req.get('Auth') || '';
+      let authToken = req.header('Auth') || '';
       let sessionId = cryptojs.MD5(authToken).toString();
-      let session = Session.find(sessionId);
-      if (!sessionToken) {
+      let session = await Session.find(sessionId)
+      if (!session) {
         throw new Error();
       }
-      req.sessionToken = session.getAttribute('token');
-
+      req.sessionToken = session.getToken();
       let userId = session.getUserId();
       let user = User.find(userId);
-
       req.user = user;
       next();
     } catch(e) {
-      res.status(401).send();
+      console.log(e)
+      res.send(401);
     }
   }
 };

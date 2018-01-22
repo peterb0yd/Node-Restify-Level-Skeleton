@@ -10,7 +10,6 @@ module.exports = {
 
     try {
       let user = await User.findByEmail(email);
-      console.log(user);
       if (user.getAttribute('activated')) {
         // already activated
       } else if (user.authenticated('activation', token)) {

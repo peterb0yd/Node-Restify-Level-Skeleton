@@ -1,34 +1,34 @@
-const _ = require('lodash');
-const uuid = require('uuid/v4');
-const bcrypt = require('bcryptjs');
-const crypto = require('crypto');
-const cryptojs = require('crypto-js');
-const schemas = require('./schemas');
-const userMailer = require('../mailers/userMailer');
-const Session = require('./session');
-const activationFields = ['email', 'activationToken'];
+const _ = require('lodash')
+const uuid = require('uuid/v4')
+const bcrypt = require('bcryptjs')
+const crypto = require('crypto')
+const cryptojs = require('crypto-js')
+const schemas = require('./schemas')
+const userMailer = require('../mailers/userMailer')
+const Session = require('./session')
+const activationFields = ['email', 'activationToken']
 const publicFields = ['firstName', 'lastName', 'email', 'activated', 'activatedAt']
 
-const db = require('../../db');
+const db = require('../../db')
 
 const User = class {
 
     constructor(data) {
-      // this.db = db;
-      this.data = this.sanitize(data);
+      // this.db = db
+      this.data = this.sanitize(data)
     }
 
     // Remove disallowed fields from User data
     sanitize(data) {
-      data = data || {};
-      let schema = schemas.user;
-      return _.pick(_.defaults(data, schema), _.keys(schema));
+      data = data || {}
+      let schema = schemas.user
+      return _.pick(_.defaults(data, schema), _.keys(schema))
     }
 
     // Get attribute from User
     // @returns {string} user attribute
     getAttribute(key) {
-      return this.data[key];
+      return this.data[key]
     }
 
     // Get Publicly Safe User Attributes
@@ -45,94 +45,95 @@ const User = class {
 
     // Create an Activation Digest for User
     createActivationDigest() {
-      this.data.activationToken = newToken();
-      this.data.activationDigest = getDigest(this.getAttribute('activationToken'), this.salt);
-    };
+      this.data.activationToken = newToken()
+      this.data.activationDigest = getDigest(this.getAttribute('activationToken'), this.salt)
+    }
 
     // Authenticate User
     // @returns {boolean} matching key?
     authenticated(attribute, token) {
-      return bcrypt.compareSync(token, this.getAttribute(`${attribute}Digest`));
-    };
+      return bcrypt.compareSync(token, this.getAttribute(`${attribute}Digest`))
+    }
 
     // Set User as Activated
     async setActivated() {
-      this.data.activated = true;
-      this.data.activatedAt = new Date();
-      await this.save();
+      this.data.activated = true
+      this.data.activatedAt = new Date()
+      await this.save()
     }
 
     // Set User Attribute
     async setAttribute(key, value) {
-      let userId = this.getAttribute('id');
-      this.data[key] = value;
-      await db.put(`user:${userId}`, this.data);
+      let userId = this.getAttribute('id')
+      this.data[key] = value
+      await db.put(`user:${userId}`, this.data)
     }
 
     // Save User to DB
     async save() {
-      let userId = this.data.id || uuid();
-      this.data.id = userId;
+      let userId = this.data.id || uuid()
+      this.data.id = userId
       await db.put(`email:${this.data.email}`, userId)
-      await db.put(`user:${userId}`, this.data);
+      await db.put(`user:${userId}`, this.data)
     }
 
     // Create a User
     // @return User
     static async create(data) {
-      await assertUnique(data);
-      validatePassword(data);
-      setPassword(data);
-      setEmail(data);
-      let user = new User(data, db);
-      user.createActivationDigest();
-      let userData = user.getActivationData();
-      console.log(userData);
-      userMailer.sendAccountActivationEmail(userData);
-      await user.save();
+      await assertUnique(data)
+      validatePassword(data)
+      setPassword(data)
+      setEmail(data)
+      let user = new User(data, db)
+      user.createActivationDigest()
+      let userData = user.getActivationData()
+      userMailer.sendAccountActivationEmail(userData)
+      await user.save()
+      return user
     }
 
     // Find User by ID
     // @return User
     static async find(id) {
       let userData = await db.get(`user:${id}`)
-      return new User(userData);
+      return new User(userData)
     }
 
     // Find User by Email
     // @return User
     static async findByEmail(email) {
       let userId = await db.get(`email:${email}`)
-      return await this.find(userId);
+      return await this.find(userId)
     }
 
     // Find All Users
-    // @return Users as Json
+    // @return Users as JSON
     static findAll() {
       return new Promise((resolve, reject) => {
-        let users = [];
+        let users = []
         let readStream = db.createReadStream()
         readStream.on('data', data => {
-          if (_.includes(data.key, 'user'))
-            users.push(_.pick(data.value, ...publicFields));
-        });
+          // if (_.includes(data.key, 'user'))
+            // users.push(_.pick(data.value, ...publicFields))
+          users.push({ key: data.key, value: data.value })
+        })
         readStream.on('error', err => {
-          reject();
-        });
+          reject()
+        })
         readStream.on('end', () => {
-          resolve(users);
-        });
-      });
+          resolve(users)
+        })
+      })
     }
 
     // Authenticate user
     static async authenticate(body) {
       if (!_.isString(body.email) || !_.isString(body.password)) {
-        return false;
+        return false
       }
-      let user;
+      let user
       try {
-        user = await User.findByEmail(body.email);
+        user = await User.findByEmail(body.email)
       } catch (e) {
         throw {
           field: 'email',
@@ -146,13 +147,12 @@ const User = class {
         }
       }
 
-      return user;
+      return user
     }
 
 }
 
-module.exports = User;
-
+module.exports = User
 
 // ---------------------------
 // ---- Private Functions ----
@@ -160,11 +160,11 @@ module.exports = User;
 
 let assertUnique = async function(data) {
   // Try to find User by email
-  let foundUser;
+  let foundUser
   try {
-    foundUser = await User.findByEmail(data.email);
+    foundUser = await User.findByEmail(data.email)
   } catch (e) {
-    return true;
+    return true
   }
   // User exists in DB
   if (foundUser) {
@@ -181,30 +181,30 @@ let validatePassword = function(data) {
     throw {
       path: 'passwordConfirmation',
       message: 'Password confirmation does not match password.'
-    };
+    }
   }
 }
 
 let setEmail = function(data) {
-  data.email = data.email.toLowerCase();
+  data.email = data.email.toLowerCase()
 }
 
 let setPassword = function(data) {
-  let salt = bcrypt.genSaltSync(10);
-  let hashedPassword = bcrypt.hashSync(data.password, salt);
-  data.salt = salt;
-  data.passwordDigest = hashedPassword;
+  let salt = bcrypt.genSaltSync(10)
+  let hashedPassword = bcrypt.hashSync(data.password, salt)
+  data.salt = salt
+  data.passwordDigest = hashedPassword
 }
 
 let newToken = function() {
-  return crypto.randomBytes(16).toString('hex');
+  return crypto.randomBytes(16).toString('hex')
 }
 
 let getDigest = function(string, salt) {
-  return bcrypt.hashSync(string, salt);
+  return bcrypt.hashSync(string, salt)
 }
 
 
 let errorHandler = function(err) {
-  console.error(err);
+  console.error(err)
 }
