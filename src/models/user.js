@@ -14,7 +14,6 @@ const db = require('../../db')
 const User = class {
 
     constructor(data) {
-      // this.db = db
       this.data = this.sanitize(data)
     }
 
@@ -113,9 +112,9 @@ const User = class {
         let users = []
         let readStream = db.createReadStream()
         readStream.on('data', data => {
-          // if (_.includes(data.key, 'user'))
-            // users.push(_.pick(data.value, ...publicFields))
-          users.push({ key: data.key, value: data.value })
+          if (_.includes(data.key, 'user'))
+            users.push(_.pick(data.value, ...publicFields))
+          // users.push({ key: data.key, value: data.value }) /* Temp code for seeing everything in DB */
         })
         readStream.on('error', err => {
           reject()

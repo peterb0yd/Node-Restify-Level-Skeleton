@@ -30,7 +30,7 @@ const Session = class {
     return sessionData.userId
   }
 
-  // Save User to DB
+  // Save Session to DB
   async save() {
     let id = this.data.id
     return await db.put(`session:${id}`, this.data)
@@ -43,6 +43,11 @@ const Session = class {
     return new Session(sessionData);
   }
 
+  // Remove a Session from DB
+  static async destroy(id) {
+    db.del(`session:${id}`)
+  }
+
   // Create session for User
   // @returns {object} Session
   static async create(user) {
@@ -51,7 +56,10 @@ const Session = class {
     let id = cryptojs.MD5(token).toString();
     let sessionData = { id, token }
     let session = new Session(sessionData)
+    let lastSessionId = user.getAttribute('sessionId')
     await session.save()
+    Session.destroy(lastSessionId)
+    user.setAttribute('sessionId', id)
     return session
   }
 
@@ -62,8 +70,6 @@ const Session = class {
       let stringData = JSON.stringify({ userId })
       let token = cryptojs.AES.encrypt(stringData, keys.crypt).toString()
       let sessionToken = jwt.sign({ token }, keys.jwt)
-
-
       return sessionToken
     } catch(e) {
       return undefined
